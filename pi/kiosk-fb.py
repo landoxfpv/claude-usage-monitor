@@ -52,6 +52,124 @@ def load_font(size, weight=600, mono=False):
     return _fonts[key]
 
 
+# Palette: copia delle CSS vars di index.html
+PAL = {
+    "bg": (13, 10, 18),        # --ink-950
+    "grid": (19, 15, 26),      # trama griglia (2.5% bianco su bg)
+    "panel": (29, 23, 41),     # --ink-800
+    "panel_hi": (23, 18, 33),  # --ink-850
+    "track": (47, 37, 66),     # --ink-600
+    "border": (38, 32, 52),    # --border-subtle su bg
+    "fg1": (242, 239, 247),    # --fg-1
+    "fg2": (185, 176, 204),    # --fg-2
+    "fg3": (132, 122, 156),    # --fg-3
+    "violet": (126, 95, 165),  # --violet-500
+    "mint": (91, 208, 184),    # --mint-400
+    "warning": (232, 176, 75),
+    "danger": (229, 88, 107),
+}
+
+
+def bar_color(pct):
+    if pct >= 90:
+        return PAL["danger"]
+    if pct >= 70:
+        return PAL["warning"]
+    return PAL["violet"]
+
+
+def _panel(d, x, y, w, h, win, s, now):
+    pad = round(14 * s)
+    d.rounded_rectangle([x, y, x + w, y + h], radius=round(14 * s),
+                        fill=PAL["panel"], outline=PAL["border"])
+    d.text((x + pad, y + pad), win["label"],
+           font=load_font(round(10 * s), 600, mono=True), fill=PAL["fg3"])
+    d.text((x + pad, y + pad + round(12 * s)), f"{win['pct']:.0f}%",
+           font=load_font(round(46 * s), 800), fill=PAL["fg1"])
+    bar_y = y + h - pad - round(22 * s)
+    bar_w = w - 2 * pad
+    bh = round(6 * s)
+    d.rounded_rectangle([x + pad, bar_y, x + pad + bar_w, bar_y + bh],
+                        radius=bh // 2, fill=PAL["track"])
+    fill_w = round(bar_w * min(win["pct"], 100.0) / 100)
+    if fill_w > bh:
+        d.rounded_rectangle([x + pad, bar_y, x + pad + fill_w, bar_y + bh],
+                            radius=bh // 2, fill=bar_color(win["pct"]))
+    d.text((x + pad, bar_y + round(11 * s)), "RESET",
+           font=load_font(round(8 * s), 600, mono=True), fill=PAL["fg3"])
+    d.text((x + w - pad, bar_y + round(9 * s)),
+           format_countdown(win["resets_at"], now),
+           font=load_font(round(11 * s), 700), fill=PAL["fg2"], anchor="ra")
+
+
+def _session_card(d, x, y, w, h, sessions, idx, s):
+    pad = round(14 * s)
+    d.rounded_rectangle([x, y, x + w, y + h], radius=round(14 * s),
+                        fill=PAL["panel_hi"], outline=PAL["border"])
+    if not sessions:
+        d.text((x + w / 2, y + h / 2), "nessuna sessione attiva",
+               font=load_font(round(10 * s), 500), fill=PAL["fg3"], anchor="mm")
+        return
+    sess = sessions[idx % len(sessions)]
+    d.text((x + pad, y + pad), sess["name"],
+           font=load_font(round(13 * s), 700), fill=PAL["fg1"])
+    d.text((x + pad, y + pad + round(19 * s)), sess["meta"],
+           font=load_font(round(10 * s), 500), fill=PAL["fg3"])
+    if len(sessions) > 1:
+        d.text((x + w - pad, y + pad), f"{idx % len(sessions) + 1}/{len(sessions)}",
+               font=load_font(round(9 * s), 600, mono=True),
+               fill=PAL["fg3"], anchor="ra")
+
+
+def render_frame(state, size, carousel_index, now):
+    w, h = size
+    s = min(w / 480, h / 320)
+    img = Image.new("RGB", size, PAL["bg"])
+    d = ImageDraw.Draw(img)
+    step = max(8, round(24 * s))
+    for gx in range(0, w, step):
+        d.line([(gx, 0), (gx, h)], fill=PAL["grid"])
+    for gy in range(0, h, step):
+        d.line([(0, gy), (w, gy)], fill=PAL["grid"])
+
+    m = round(10 * s)
+    d.text((m, m), "MORE DIGITAL LAB · USAGE MONITOR",
+           font=load_font(round(10 * s), 600, mono=True), fill=PAL["fg3"])
+
+    if state["status"] != "ok":
+        no_server = state["status"] == "no-server"
+        title = "In attesa del server…" if no_server else "In attesa del primo dato"
+        sub = ("il servizio claude-usage non risponde" if no_server
+               else "apri una sessione Claude Code sul computer")
+        d.text((w / 2, h / 2 - round(10 * s)), title,
+               font=load_font(round(20 * s), 800), fill=PAL["fg1"], anchor="mm")
+        d.text((w / 2, h / 2 + round(16 * s)), sub,
+               font=load_font(round(11 * s), 500), fill=PAL["fg3"], anchor="mm")
+        return img
+
+    fresh = state.get("updated_at") and now - state["updated_at"] < 300
+    r = round(4 * s)
+    d.ellipse([w - m - 2 * r, m + r, w - m, m + 3 * r],
+              fill=PAL["mint"] if fresh else PAL["fg3"])
+    if state.get("model"):
+        d.text((w - m - 3 * r - round(4 * s), m), state["model"],
+               font=load_font(round(10 * s), 600), fill=PAL["fg2"], anchor="ra")
+
+    top = round(34 * s)
+    card_h = round(58 * s)
+    gap = round(10 * s)
+    panel_h = h - top - card_h - gap - m
+    windows = state["windows"] or [{"key": "?", "label": "NESSUNA FINESTRA",
+                                    "pct": 0.0, "resets_at": None}]
+    n = len(windows)
+    pw = (w - 2 * m - gap * (n - 1)) // n
+    for i, win in enumerate(windows):
+        _panel(d, m + i * (pw + gap), top, pw, panel_h, win, s, now)
+    _session_card(d, m, top + panel_h + gap, w - 2 * m, card_h,
+                  state["sessions"], carousel_index, s)
+    return img
+
+
 def fetch_usage(url, timeout=5):
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
@@ -130,3 +248,28 @@ def parse_state(snap, now):
         "windows": windows,
         "sessions": [_session_view(e) for e in (snap.get("sessions") or [])],
     }
+
+
+def run(args):
+    raise SystemExit("loop framebuffer: Task 4")
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Renderer kiosk nativo (framebuffer)")
+    ap.add_argument("--fb", default="/dev/fb0", help="device framebuffer")
+    ap.add_argument("--url", default="http://localhost:8787/api/usage")
+    ap.add_argument("--out", help="renderizza un solo frame su PNG ed esci (sviluppo)")
+    ap.add_argument("--size", default="480x320", help="risoluzione con --out, es. 480x320")
+    args = ap.parse_args()
+    if args.out:
+        w, h = (int(v) for v in args.size.lower().split("x"))
+        now = time.time()
+        state = parse_state(fetch_usage(args.url), now)
+        render_frame(state, (w, h), 0, now).save(args.out)
+        print(f"frame salvato in {args.out} (stato: {state['status']})")
+        return
+    run(args)
+
+
+if __name__ == "__main__":
+    main()
