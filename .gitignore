@@ -7,3 +7,8 @@ pi/data.json.tmp
 
 # config locale tooling
 .impeccable/
+
+# sviluppo kiosk
+.venv/
+__pycache__/
+preview*.png
