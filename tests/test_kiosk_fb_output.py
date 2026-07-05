@@ -13,6 +13,14 @@ class TestFrameToBytes(unittest.TestCase):
         img = Image.new("RGB", (1, 1), (255, 0, 0))
         self.assertEqual(K.frame_to_bytes(img, 16), b"\x00\xf8")
 
+    def test_rgb565_green(self):
+        img = Image.new("RGB", (1, 1), (0, 255, 0))
+        self.assertEqual(K.frame_to_bytes(img, 16), b"\xe0\x07")
+
+    def test_rgb565_blue(self):
+        img = Image.new("RGB", (1, 1), (0, 0, 255))
+        self.assertEqual(K.frame_to_bytes(img, 16), b"\x1f\x00")
+
     def test_rgb565_length(self):
         img = Image.new("RGB", (480, 320), (0, 0, 0))
         self.assertEqual(len(K.frame_to_bytes(img, 16)), 480 * 320 * 2)

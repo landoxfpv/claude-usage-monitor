@@ -25,6 +25,13 @@ ROTATE_INTERVAL = 10.0  # rotazione carosello sessioni, come l'HTML
 PREF_ORDER = ["five_hour", "seven_day"]
 WINDOW_LABELS = {"five_hour": "SESSIONE · 5H", "seven_day": "SETTIMANA · 7G"}
 
+# Tabelle di lookup per la conversione RGB -> RGB565 little-endian:
+# byte alto = RRRRRGGG, byte basso = GGGBBBBB
+_T_R_HI = bytes((v & 0xF8) for v in range(256))
+_T_G_HI = bytes((v >> 5) for v in range(256))
+_T_G_LO = bytes(((v & 0x1C) << 3) for v in range(256))
+_T_B_LO = bytes((v >> 3) for v in range(256))
+
 from PIL import Image, ImageDraw, ImageFont
 
 FONT_DIR = os.path.join(BASE_DIR, "fonts")
@@ -252,15 +259,19 @@ def parse_state(snap, now):
 
 def frame_to_bytes(img, bpp):
     if bpp == 16:
-        # RGB565 little-endian: convert RGB to 16-bit RGB565
-        rgb = img.tobytes("raw", "RGB")
-        result = bytearray()
-        for i in range(0, len(rgb), 3):
-            r, g, b = rgb[i], rgb[i+1], rgb[i+2]
-            # Pack into RGB565: RRRRRggg gggBBBBB (little-endian)
-            word = ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | ((b & 0xf8) >> 3)
-            result.extend(word.to_bytes(2, byteorder='little'))
-        return bytes(result)
+        # RGB565 little-endian, vettorizzato: niente loop per-pixel
+        # (il Pi Zero W non reggerebbe 153k iterazioni Python al secondo)
+        data = img.tobytes()
+        r, g, b = data[0::3], data[1::3], data[2::3]
+        n = len(r)
+        hi = (int.from_bytes(r.translate(_T_R_HI), "big")
+              | int.from_bytes(g.translate(_T_G_HI), "big"))
+        lo = (int.from_bytes(g.translate(_T_G_LO), "big")
+              | int.from_bytes(b.translate(_T_B_LO), "big"))
+        out = bytearray(2 * n)
+        out[0::2] = lo.to_bytes(n, "big")
+        out[1::2] = hi.to_bytes(n, "big")
+        return bytes(out)
     if bpp == 24:
         return img.tobytes("raw", "BGR")
     return img.tobytes("raw", "BGRX")          # 32bpp XRGB little-endian
