@@ -115,6 +115,29 @@ background: la statusline non viene mai rallentata, e se il Pi è spento il
 forward fallisce in silenzio. Per disinstallare: rimuovi il blocco
 `statusLine` da `settings.json` (o rimettici la tua statusline precedente).
 
+## Display dedicato sul Pi (kiosk)
+
+Se al Pi è collegato uno schermo, un secondo installer opzionale mostra la
+dashboard direttamente lì, all'accensione:
+
+```sh
+./install-kiosk.sh
+```
+
+Riconosce il tuo Pi e propone uno dei due motori (Invio conferma):
+
+- **Chromium** — la stessa pagina web a schermo intero, tramite il
+  compositor Wayland minimale `cage`. Per Pi 3/4/5 e Zero 2 W; gli schermi
+  HDMI funzionano senza configurazione.
+- **Renderer nativo** — un piccolo processo Python che disegna direttamente
+  sul framebuffer, niente X e niente browser. Stesso design, refresh a 1 s.
+  È il motore per il Pi Zero W originale e per i pannelli GPIO/SPI.
+
+I pannelli GPIO/SPI (es. shield 3.5" ST7796S) richiedono prima un driver del
+kernel — vedi [docs/display-st7796s.md](docs/display-st7796s.md). Rilancia
+l'installer per cambiare motore o framebuffer; per rimuoverlo:
+`sudo systemctl disable --now claude-kiosk`.
+
 ## Test rapido senza Pi
 
 ```sh

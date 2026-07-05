@@ -231,10 +231,17 @@ cd claude-usage-monitor
 
   <section class="step">
     <div class="step-head"><span class="step-num">STEP 05</span><h2>Facoltativo: uno schermo dedicato</h2></div>
-    <p>La pagina è responsive: su schermi piccoli e bassi (fino a 480×320) passa da sola
-    a una modalità compatta con numeri grandi, pensata per un piccolo display da
-    scrivania collegato al Pi o per un vecchio telefono appoggiato al monitor. Se le
-    sessioni attive sono più di una, ruotano da sole ogni 10 secondi.</p>
+    <p>Se al Pi è collegato uno schermo (HDMI oppure un pannellino GPIO/SPI),
+    puoi far comparire il monitor direttamente lì, all'accensione. Dalla
+    cartella del progetto sul Pi:</p>
+    <p><code>./install-kiosk.sh</code></p>
+    <p>Lo script riconosce il tuo Pi e propone il motore giusto (basta premere
+    Invio): <b>Chromium</b> a schermo intero sui Pi recenti, oppure un
+    <b>renderer leggero</b> senza browser per il Pi Zero W e i pannelli SPI.
+    I pannelli GPIO/SPI (come gli shield 3.5" ST7796S) richiedono prima il
+    driver: segui <code>docs/display-st7796s.md</code>. Per rimuovere il kiosk:
+    <code>sudo systemctl disable --now claude-kiosk</code>.</p>
+    <p>Con più sessioni attive, le card ruotano da sole ogni 10 secondi.</p>
   </section>
 
   <section class="card">

@@ -53,6 +53,9 @@ cd claude-usage-monitor
 ./install-pi.sh
 ```
 
+Optional, if a display is attached to the Pi: `./install-kiosk.sh` (see
+"Dedicated display" below).
+
 On the **computer running Claude Code** (macOS or Linux):
 
 ```sh
@@ -92,6 +95,29 @@ a zero-dependency Python HTTP server you can run any way you like, and
 PI_URL=http://192.168.1.xx:8787/api/usage
 STATUSLINE_CMD='node /path/to/your/statusline.js'   # only if you had one
 ```
+
+## Dedicated display on the Pi (kiosk)
+
+If a screen is attached to the Pi itself, an optional second installer makes
+the dashboard appear on it at boot:
+
+```sh
+./install-kiosk.sh
+```
+
+It detects your Pi and proposes one of two engines (Enter accepts):
+
+- **Chromium** — the same web page full-screen, via the minimal `cage`
+  Wayland compositor. For Pi 3/4/5 and Zero 2 W; HDMI screens work out of
+  the box.
+- **Native renderer** — a small Python process drawing straight to the
+  framebuffer, no X and no browser. Same design, 1 s refresh. This is the
+  engine for the original Pi Zero W, and for GPIO/SPI panels.
+
+GPIO/SPI panels (e.g. 3.5" ST7796S shields) need a kernel driver first —
+see [docs/display-st7796s.md](docs/display-st7796s.md). Re-run the installer
+to switch engine or framebuffer; remove with
+`sudo systemctl disable --now claude-kiosk`.
 
 ## Quick test without a Pi
 

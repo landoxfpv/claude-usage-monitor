@@ -56,6 +56,32 @@ preserves** any pre-existing statusline as `STATUSLINE_CMD`. Do not edit
 `settings.json` by hand and never overwrite an existing statusline outside
 this mechanism. It is idempotent: re-running it is safe.
 
+## Optional: dedicated display on the Pi (kiosk)
+
+Only if the user says a screen is attached to the Pi itself (HDMI or a
+GPIO/SPI panel), and only **after** `install-pi.sh` has succeeded:
+
+```sh
+ssh <user>@<pi-host> 'cd claude-usage-monitor && ./install-kiosk.sh'
+```
+
+It is interactive: it detects the Pi and proposes a default engine (Enter
+accepts it), so run it in a session that can prompt, or relay the prompts to
+the user.
+
+- **Engines**: `chromium` (full-screen page via the `cage` Wayland
+  compositor; default on Pi 3/4/5 and Zero 2 W) or `native` (a small Python
+  process drawing straight to the framebuffer, no browser; default on
+  `armv6l`, i.e. the original Pi Zero W). `/dev/fb1` is preferred over
+  `/dev/fb0` when present (typical of SPI panels).
+- **GPIO/SPI panels** (e.g. 3.5" ST7796S shields) need a kernel driver
+  first, producing a working `/dev/fb1` — walk the user through
+  `docs/display-st7796s.md` before running the native engine on such a
+  panel.
+- **Verify**: `systemctl is-active claude-kiosk` → must return `active`; on
+  failure check `journalctl -u claude-kiosk -e`.
+- **Remove**: `sudo systemctl disable --now claude-kiosk`.
+
 ## End-to-end verification (mandatory before declaring success)
 
 1. `curl -s http://<pi>:8787/health` → `{"ok":true}`.
