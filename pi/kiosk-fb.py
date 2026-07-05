@@ -250,8 +250,68 @@ def parse_state(snap, now):
     }
 
 
+def frame_to_bytes(img, bpp):
+    if bpp == 16:
+        # RGB565 little-endian: convert RGB to 16-bit RGB565
+        rgb = img.tobytes("raw", "RGB")
+        result = bytearray()
+        for i in range(0, len(rgb), 3):
+            r, g, b = rgb[i], rgb[i+1], rgb[i+2]
+            # Pack into RGB565: RRRRRggg gggBBBBB (little-endian)
+            word = ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | ((b & 0xf8) >> 3)
+            result.extend(word.to_bytes(2, byteorder='little'))
+        return bytes(result)
+    if bpp == 24:
+        return img.tobytes("raw", "BGR")
+    return img.tobytes("raw", "BGRX")          # 32bpp XRGB little-endian
+
+
+def pad_rows(data, width, bpp, stride):
+    row = width * bpp // 8
+    if stride <= row:
+        return data
+    pad = b"\x00" * (stride - row)
+    return b"".join(data[i:i + row] + pad for i in range(0, len(data), row))
+
+
+class FramebufferOutput:
+    def __init__(self, fbdev, sysfs="/sys/class/graphics"):
+        self.fbdev = fbdev
+        base = os.path.join(sysfs, os.path.basename(fbdev))
+        with open(os.path.join(base, "virtual_size")) as f:
+            w, h = f.read().strip().split(",")
+        self.size = (int(w), int(h))
+        with open(os.path.join(base, "bits_per_pixel")) as f:
+            self.bpp = int(f.read().strip())
+        try:
+            with open(os.path.join(base, "stride")) as f:
+                self.stride = int(f.read().strip())
+        except OSError:
+            self.stride = self.size[0] * self.bpp // 8
+
+    def write(self, img):
+        data = pad_rows(frame_to_bytes(img, self.bpp),
+                        self.size[0], self.bpp, self.stride)
+        with open(self.fbdev, "wb") as f:
+            f.write(data)
+
+
 def run(args):
-    raise SystemExit("loop framebuffer: Task 4")
+    out = FramebufferOutput(args.fb)
+    state = {"status": "no-server"}
+    last_poll = 0.0
+    last_rotate = time.time()
+    carousel = 0
+    while True:
+        now = time.time()
+        if now - last_poll >= POLL_INTERVAL:
+            state = parse_state(fetch_usage(args.url), now)
+            last_poll = now
+        if now - last_rotate >= ROTATE_INTERVAL:
+            carousel += 1
+            last_rotate = now
+        out.write(render_frame(state, out.size, carousel, now))
+        time.sleep(REDRAW_INTERVAL)
 
 
 def main():
