@@ -25,6 +25,32 @@ ROTATE_INTERVAL = 10.0  # rotazione carosello sessioni, come l'HTML
 PREF_ORDER = ["five_hour", "seven_day"]
 WINDOW_LABELS = {"five_hour": "SESSIONE · 5H", "seven_day": "SETTIMANA · 7G"}
 
+from PIL import Image, ImageDraw, ImageFont
+
+FONT_DIR = os.path.join(BASE_DIR, "fonts")
+SANS_TTF = os.path.join(FONT_DIR, "Manrope[wght].ttf")
+MONO_TTF = os.path.join(FONT_DIR, "JetBrainsMono[wght].ttf")
+_DEJAVU = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+_fonts = {}
+
+
+def load_font(size, weight=600, mono=False):
+    key = (size, weight, mono)
+    if key not in _fonts:
+        try:
+            f = ImageFont.truetype(MONO_TTF if mono else SANS_TTF, size)
+            try:
+                f.set_variation_by_axes([weight])
+            except OSError:
+                pass  # FreeType senza supporto variabile: peso di default
+        except OSError:
+            try:
+                f = ImageFont.truetype(_DEJAVU, size)
+            except OSError:
+                f = ImageFont.load_default()
+        _fonts[key] = f
+    return _fonts[key]
+
 
 def fetch_usage(url, timeout=5):
     try:
