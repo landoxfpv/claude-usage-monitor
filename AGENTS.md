@@ -1,0 +1,88 @@
+# AGENTS.md — Runbook for AI agents
+
+You are an agent (e.g. Claude Code) and the user asked you to install or
+manage **Claude Usage Monitor**: a LAN dashboard for Claude subscription
+usage, with a server on a Raspberry Pi and a forwarder hooked into Claude
+Code's statusline. This file tells you how to do it on their behalf, what to
+verify, and where to stop.
+
+## Architecture in 10 seconds
+
+- `mac/statusline-forward.sh` → configured as the Claude Code statusline on
+  the user's computer: forwards the statusline JSON (which includes
+  `rate_limits`, i.e. the /usage data) via POST to the Pi, then delegates
+  rendering to the pre-existing statusline (`STATUSLINE_CMD`) or prints a
+  minimal built-in line.
+- `pi/server.py` → on the Pi (stdlib Python, port 8787): receives payloads,
+  keeps them per `session_id` (30 min TTL), serves `pi/index.html`.
+- Client config in `~/.claude/usage-monitor.env`: `PI_URL` and `STATUSLINE_CMD`.
+- No OAuth tokens, no undocumented APIs: only the official statusline
+  mechanism. Do not "improve" this by switching approach.
+
+## Prerequisites to verify before starting
+
+1. Claude Code ≥ 2.1.80 on the computer (`claude --version`); below that the
+   statusline payload has no `rate_limits` → tell the user and stop.
+2. `python3` available on both the computer and the Pi.
+3. The Pi is reachable: ask the user for hostname or IP if unknown
+   (`raspberrypi.local` is the default). If the Pi is not flashed/powered yet,
+   walk the user through `docs/tutorial.html` (STEP 01): the microSD is
+   prepared with Raspberry Pi Imager, WiFi and SSH are set there. You cannot
+   do that part for them.
+
+## Installation (use the installers, do not hand-roll)
+
+### Pi side (over SSH)
+
+```sh
+ssh <user>@<pi-host> 'git clone https://github.com/landoxfpv/claude-usage-monitor 2>/dev/null; cd claude-usage-monitor && git pull --ff-only 2>/dev/null; ./install-pi.sh'
+```
+
+If `git` is missing on the Pi: `scp -r pi/ install-pi.sh <user>@<pi-host>:~/claude-usage-monitor/`
+and run the installer there. The installer needs sudo for systemd: if the SSH
+session cannot prompt for the sudo password, run it in an interactive session
+or ask the user to run it themselves.
+
+Verify: `curl -s http://<pi-host>:8787/health` → must return `{"ok":true}`.
+
+### Computer side
+
+```sh
+./install-client.sh <pi-host-or-ip>
+```
+
+The installer patches `~/.claude/settings.json` and **automatically
+preserves** any pre-existing statusline as `STATUSLINE_CMD`. Do not edit
+`settings.json` by hand and never overwrite an existing statusline outside
+this mechanism. It is idempotent: re-running it is safe.
+
+## End-to-end verification (mandatory before declaring success)
+
+1. `curl -s http://<pi>:8787/health` → `{"ok":true}`.
+2. Already-open Claude Code sessions do not reload the statusline config: a
+   new session is needed (ask the user to send a message in a new one).
+3. Within ~30s: `curl -s http://<pi>:8787/api/usage` → the JSON must contain a
+   populated `payload.rate_limits` and a non-empty `sessions` array.
+4. If the payload arrives but `rate_limits` is missing → Claude Code too old.
+5. Report the final page URL to the user and what they will see.
+
+## Quick troubleshooting
+
+| Symptom | Likely cause | Action |
+|---|---|---|
+| `/health` not responding | service down or wrong host | `ssh` → `systemctl status claude-usage`, `journalctl -u claude-usage -e` |
+| Page stuck on waiting state | forwarder not configured or wrong PI_URL | re-run `install-client.sh`, check `~/.claude/usage-monitor.env` |
+| Payload without `rate_limits` | Claude Code < 2.1.80 | update Claude Code |
+| User's statusline disappeared | STATUSLINE_CMD missing from env | recover the command and add it to `~/.claude/usage-monitor.env` |
+| Data not moving | Claude Code idle (normal behavior) | explain to the user, it is not a bug |
+
+## Boundaries you must respect
+
+- Do not expose the server outside the LAN (it has no authentication) and do
+  not suggest port-forwarding.
+- Do not extract or reuse Claude OAuth tokens to "enrich" the data.
+- The payload contains the user's paths and repo names: do not send it
+  anywhere else.
+- Uninstall: remove the `statusLine` block from `~/.claude/settings.json` (or
+  restore `STATUSLINE_CMD`), and on the Pi
+  `sudo systemctl disable --now claude-usage`.

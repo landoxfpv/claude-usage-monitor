@@ -1,0 +1,9 @@
+# runtime del server (ultimo payload ricevuto)
+pi/data.json
+pi/data.json.tmp
+
+*.log
+.DS_Store
+
+# config locale tooling
+.impeccable/

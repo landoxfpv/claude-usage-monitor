@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>More Digital Lab — Claude Usage Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 472.83 473.29"><circle cx="236" cy="236" r="220" fill="%23120E1A"/><circle cx="236" cy="236" r="130" fill="none" stroke="%239678BD" stroke-width="34"/><circle cx="236" cy="236" r="46" fill="%235BD0B8"/></svg>'>
+<style>
+:root{
+  --violet-100:#E9E1F4;--violet-200:#D2C3E7;--violet-300:#B49CD4;--violet-400:#9678BD;
+  --violet-500:#7E5FA5;--violet-600:#6B4E8E;--violet-700:#573F74;--violet-900:#2F2240;
+  --ink-950:#0D0A12;--ink-900:#120E1A;--ink-850:#171221;--ink-800:#1D1729;
+  --ink-700:#251D34;--ink-600:#2F2542;
+  --fg-1:#F2EFF7;--fg-2:#B9B0CC;--fg-3:#847A9C;
+  --mint-400:#5BD0B8;--warning:#E8B04B;--danger:#E5586B;--info:#8FA8F0;
+  --accent:#6B4E8E;--accent-hover:#7E5FA5;
+  --accent-soft:rgba(107,78,142,.22);--accent-soft-border:rgba(150,120,189,.38);
+  --border-subtle:rgba(242,239,247,.07);--border-default:rgba(242,239,247,.12);
+  --border-strong:rgba(242,239,247,.22);
+  --font-display:'Manrope',system-ui,sans-serif;
+  --font-body:'Manrope',system-ui,sans-serif;
+  --font-mono:'Geist Mono','JetBrains Mono',ui-monospace,monospace;
+  --radius-md:14px;--radius-lg:20px;--radius-xl:28px;--radius-full:999px;
+  --shadow-card:0 1px 0 rgba(242,239,247,.04) inset,0 8px 24px rgba(0,0,0,.35);
+  --shadow-raised:0 1px 0 rgba(242,239,247,.06) inset,0 16px 40px rgba(0,0,0,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--font-body);background:var(--ink-950);color:var(--fg-1);
+  min-height:100vh;overflow-x:hidden;
+}
+/* trama griglia 48px + glow radiale violet */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(242,239,247,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(242,239,247,.025) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+body::after{
+  content:"";position:fixed;pointer-events:none;z-index:0;
+  width:120vmax;height:120vmax;top:-70vmax;left:50%;transform:translateX(-50%);
+  background:radial-gradient(closest-side,rgba(107,78,142,.28),transparent 70%);
+}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 24px 64px}
+
+/* ---------- nav pill ---------- */
+.nav{
+  position:sticky;top:16px;z-index:10;margin:16px auto 0;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:rgba(18,14,26,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--border-default);border-radius:var(--radius-full);
+  padding:10px 20px;box-shadow:var(--shadow-card);
+}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.brand svg{height:22px;width:auto;display:block;flex:none}
+.brand .sep{width:1px;height:20px;background:var(--border-strong);flex:none}
+.brand .app{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.status{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--fg-3);flex:none}
+.status.live .dot{background:var(--mint-400);box-shadow:0 0 0 0 rgba(91,208,184,.5);animation:pulse 2.4s infinite}
+.status.live{color:var(--mint-400)}
+.status.stale .dot{background:var(--warning)}
+.status.stale{color:var(--warning)}
+.status.off .dot{background:var(--danger)}
+.status.off{color:var(--danger)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(91,208,184,.45)}70%{box-shadow:0 0 0 9px rgba(91,208,184,0)}100%{box-shadow:0 0 0 0 rgba(91,208,184,0)}}
+
+/* ---------- hero ---------- */
+.hero{padding:72px 0 40px;position:relative}
+.ghost{
+  position:absolute;top:8px;right:-8px;font-family:var(--font-mono);font-weight:600;
+  font-size:clamp(64px,14vw,150px);letter-spacing:-.04em;line-height:1;
+  color:transparent;-webkit-text-stroke:1px rgba(242,239,247,.07);
+  user-select:none;pointer-events:none;white-space:nowrap;
+}
+.eyebrow{
+  display:flex;align-items:center;gap:10px;font-family:var(--font-mono);
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--violet-300);
+  margin-bottom:18px;
+}
+.eyebrow::before{content:"";width:28px;height:1px;background:var(--violet-400)}
+h1{
+  font-family:var(--font-display);font-weight:800;letter-spacing:-.03em;
+  font-size:clamp(34px,6vw,58px);line-height:1.04;max-width:15ch;
+}
+h1 .dim{color:var(--fg-3);font-weight:700}
+.hero-meta{
+  display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:26px;
+  font-family:var(--font-mono);font-size:12px;color:var(--fg-3);letter-spacing:.04em;
+}
+.hero-meta b{color:var(--fg-2);font-weight:500}
+
+/* ---------- pannelli ---------- */
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px}
+.panel{
+  position:relative;border:1px solid var(--border-default);border-radius:var(--radius-xl);
+  background:linear-gradient(160deg,var(--ink-800),var(--ink-900) 55%,var(--ink-850));
+  box-shadow:var(--shadow-card);padding:30px 30px 26px;overflow:hidden;
+}
+.panel::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(80% 60% at 85% -10%,var(--accent-soft),transparent 70%);
+}
+.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.panel .eyebrow{margin-bottom:0}
+.panel .win-code{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);letter-spacing:.14em}
+.big{
+  font-family:var(--font-display);font-weight:800;letter-spacing:-.04em;
+  font-size:clamp(56px,9vw,84px);line-height:1;margin-top:22px;
+  font-variant-numeric:tabular-nums;
+}
+.big small{font-size:.42em;font-weight:600;color:var(--fg-3);letter-spacing:0;margin-left:2px}
+.big.ok{color:var(--fg-1)} .big.warn{color:var(--warning)} .big.crit{color:var(--danger)}
+.bar{
+  margin-top:20px;height:8px;border-radius:var(--radius-full);
+  background:var(--ink-600);overflow:hidden;position:relative;
+}
+.bar i{
+  display:block;height:100%;width:100%;border-radius:var(--radius-full);
+  background:linear-gradient(90deg,var(--violet-600),var(--violet-300));
+  transform:translateX(-100%);
+  transition:transform .8s cubic-bezier(.2,.8,.2,1);
+}
+.bar i.warn{background:linear-gradient(90deg,#8a6420,var(--warning))}
+.bar i.crit{background:linear-gradient(90deg,#7c2733,var(--danger))}
+.panel-rows{margin-top:22px;border-top:1px solid var(--border-subtle)}
+.prow{
+  display:flex;justify-content:space-between;gap:16px;padding:11px 0;
+  border-bottom:1px solid var(--border-subtle);font-size:13.5px;
+}
+.prow:last-child{border-bottom:none}
+.prow .k{color:var(--fg-3)}
+.prow .v{font-family:var(--font-mono);font-size:12.5px;color:var(--fg-2);text-align:right;font-variant-numeric:tabular-nums}
+.prow .v.hot{color:var(--violet-200)}
+
+/* pannello sessione corrente (full-width) */
+.panel.wide{grid-column:1/-1;padding:24px 30px 22px}
+.sess-name{
+  font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:-.01em;
+  margin-top:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:18px;
+  margin-top:18px;border-top:1px solid var(--border-subtle);padding-top:18px;
+}
+.stat .sl{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:var(--fg-3);text-transform:uppercase}
+.stat .sv{font-family:var(--font-display);font-weight:700;font-size:22px;margin-top:7px;font-variant-numeric:tabular-nums}
+.stat .sv small{font-size:12px;color:var(--fg-3);font-weight:600;letter-spacing:0}
+.stat .sv .plus{color:var(--mint-400)} .stat .sv .minus{color:var(--danger)}
+.stat .mini{height:4px;background:var(--ink-600);border-radius:var(--radius-full);margin-top:9px;overflow:hidden}
+.stat .mini i{display:block;height:100%;width:100%;border-radius:var(--radius-full);
+  background:linear-gradient(90deg,var(--violet-600),var(--violet-300));
+  transform:translateX(-100%);transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+
+@keyframes slideIn{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+
+/* stato vuoto / attesa */
+.empty{
+  grid-column:1/-1;border:1px dashed var(--border-strong);border-radius:var(--radius-xl);
+  padding:56px 32px;text-align:center;background:rgba(23,18,33,.5);
+}
+.empty .t{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-.01em}
+.empty .s{color:var(--fg-3);font-size:14px;margin-top:10px;line-height:1.6;max-width:52ch;margin-left:auto;margin-right:auto}
+.empty .s code{font-family:var(--font-mono);font-size:12px;color:var(--violet-200);background:var(--accent-soft);border:1px solid var(--accent-soft-border);border-radius:6px;padding:2px 7px}
+
+/* ---------- footer strip ---------- */
+.strip{
+  margin-top:26px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 26px;
+  border:1px solid var(--border-subtle);border-radius:var(--radius-lg);
+  background:rgba(23,18,33,.55);padding:14px 22px;
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;color:var(--fg-3);
+}
+.strip b{color:var(--fg-2);font-weight:500}
+.strip .grow{flex:1}
+.strip .ref{color:var(--violet-300)}
+footer{
+  margin-top:56px;padding-top:22px;border-top:1px solid var(--border-subtle);
+  display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);
+}
+footer svg{height:16px;width:auto;opacity:.75}
+
+@media (max-width:760px){
+  .panels{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr);gap:14px}
+  .hero{padding:56px 0 32px}
+  .ghost{right:-16px;top:2px}
+  .nav{top:10px;padding:9px 16px}
+  .brand .app,.brand .sep{display:none}
+  .wrap{padding:0 16px 48px}
+  .panel{padding:24px 22px 20px}
+}
+
+/* ---------- modalità kiosk: schermi piccoli in landscape (es. TFT 480×320 sul Pi) ---------- */
+@media (max-height:420px){
+  body::before{background-size:24px 24px}
+  .wrap{max-width:none;padding:0 10px 8px}
+  .nav{position:static;margin:8px 0 0;padding:8px 16px;box-shadow:none}
+  .brand svg{height:16px}
+  .status{font-size:9px;gap:7px}
+  .dot{width:7px;height:7px}
+  .hero{padding:0;position:static}
+  .ghost,.hero .eyebrow,h1{display:none}
+  .hero-meta{margin:9px 6px 0;font-size:10px;gap:2px 18px}
+  .panels{margin-top:10px;gap:10px;display:flex;flex-wrap:wrap}
+  .panel{padding:16px 16px 10px;border-radius:18px;flex:1 1 130px;min-width:0}
+  .panel.wide{flex:1 1 100%}
+  .panel .eyebrow{font-size:8.5px;letter-spacing:.1em;white-space:nowrap}
+  .panel .eyebrow::before{display:none}
+  .win-code{display:none}
+  .big{font-size:54px;margin-top:12px}
+  .bar{height:6px;margin-top:12px}
+  .panel-rows{margin-top:9px;border-top:none}
+  .prow{display:none}
+  .prow:nth-child(2){display:flex;padding:4px 0;border-bottom:none}
+  .prow:nth-child(2) .k{display:none}
+  .prow:nth-child(2) .v{
+    font-size:11px;flex:1;display:flex;justify-content:space-between;
+    align-items:baseline;white-space:nowrap;
+  }
+  .prow:nth-child(2) .v::before{
+    content:"RESET";font-size:8px;letter-spacing:.14em;color:var(--fg-3);
+  }
+  .strip,footer{display:none}
+  .panel.wide{padding:9px 16px 8px;display:none}
+  .panel.wide.rot-active{display:block;animation:slideIn .5s cubic-bezier(.2,.8,.2,1)}
+  .panel.wide .panel-head{display:none}
+  .sess-name{display:block;font-size:10.5px;font-weight:600;margin:0 0 6px;color:var(--fg-2)}
+  .stats{display:flex;justify-content:space-between;gap:10px;margin-top:0;border-top:none;padding-top:0}
+  .stat .sl{font-size:7.5px;letter-spacing:.1em}
+  .stat .sv{font-size:14px;margin-top:2px}
+  .stat .sv small{font-size:9px}
+  .stat .mini{display:none}
+  .empty{padding:24px 16px}
+  .empty .t{font-size:14px}
+  .empty .s{font-size:10.5px;margin-top:6px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <div class="brand">
+      <svg viewBox="0 0 2164.9 473.29" fill="#F2EFF7" aria-label="More Digital Lab" role="img"><path d="M216.92,471.82c-25.64-4.64-47.42-16.09-66.52-34.95-19.58-19.34-30.82-40.99-35.15-67.73l-1.75-10.77h-3.29c-4.44,0-17.24-2.63-25.21-5.17-32.06-10.24-61.26-36.69-74.54-67.54C.94,263.55-2.16,240.13,1.48,217.87c5.48-33.5,21.63-60.66,48.02-80.74,15.12-11.5,40.41-21.77,57.62-23.4l6.62-.62.61-6.65c.82-8.72,5.66-25.81,10.06-35.46,15.85-34.78,48.62-60.76,86.66-68.69,13.69-2.86,36.25-3.1,49.43-.54,35.96,7.01,68.11,31,84.77,63.26,6.21,12.02,11.62,28.44,13.01,39.46l1.12,8.88h3.19c5.25,0,19.12,2.94,26.76,5.67,10.3,3.68,27.1,12.52,34.68,18.23,9.11,6.87,22.06,20.64,28.04,29.81,12.98,19.89,19.49,39.79,20.6,62.97,2.13,44.59-17.69,83.94-54.86,108.87-13.93,9.35-35.99,17.39-52.31,19.06l-6.5.67v3.4c0,5.12-2.77,17.71-6.13,27.82-16.25,48.97-65.26,83.83-117.25,83.41-6.12-.05-14.53-.71-18.7-1.46ZM256.86,452.36c47.21-9.96,81.65-50.26,83.87-98.12.85-18.49-2.78-36.13-10.67-51.76-1.68-3.33-3.06-7.54-3.06-9.36,0-6.61,5.54-10.47,12.03-8.37,2.87.93,4.11,2.33,7.17,8.12,5.17,9.8,10.51,26.43,12,37.41l1.27,9.3,5.86-.67c7.54-.85,20.36-4.58,28.82-8.38,15.29-6.87,32.44-21.25,41.78-35.04,26.82-39.61,23.85-91.93-7.29-128.17-13.8-16.06-31.54-26.91-53.29-32.59-8.21-2.14-12.18-2.58-23.85-2.63-18.52-.09-30.79,2.7-47.97,10.93-8.39,4.02-10.44,4.13-14.45.75-2.55-2.14-3.08-3.32-3.08-6.82,0-4.77,1.52-6.61,9.01-10.91,6.63-3.81,27.22-10.37,36.99-11.78,4.67-.68,8.61-1.3,8.74-1.39.56-.36-2.97-16.6-4.9-22.51-2.84-8.7-9.1-21.13-14.4-28.6-6.36-8.97-21.85-23.16-30.97-28.36-44.26-25.27-95.44-18.16-129.89,18.04-13.05,13.72-20.94,28.27-25.8,47.59-1.84,7.31-2.21,11.5-2.17,24.33.05,13.51.4,16.79,2.73,25.5,1.46,5.5,4.46,13.76,6.66,18.35,5.53,11.53,5.25,16.42-1.1,19.7-3.7,1.92-7.85,1.2-10.72-1.86-5.39-5.74-13.15-27.87-15.5-44.19l-1.3-9-2.94.28c-14.84,1.44-35.89,9.81-49.06,19.51-18.84,13.89-33.18,35.49-39.52,59.51-3.12,11.81-3.59,31.92-1.04,44.73,7.05,35.54,30.14,63.35,63.77,76.81,13.15,5.26,21.78,6.87,36.91,6.88,18.81.01,27.38-2.02,47.74-11.35,9.46-4.34,11-4.36,15.16-.2,3.1,3.1,3.48,8.67.83,11.98-2.18,2.72-15.4,9.32-25.23,12.59-4.12,1.38-11.89,3.29-17.25,4.25l-9.75,1.75v3.25c0,10.43,8.44,32.88,17.46,46.45,5.32,8,18.7,21.46,27.55,27.72,11.45,8.09,28.13,14.83,42.91,17.33,9.07,1.54,26.19,1.06,35.94-1ZM1346.04,412.32c-16.5-1.08-23.93-2.65-41.54-8.75-28.33-9.83-50.35-23.8-70.64-44.82-26.47-27.44-41.16-56.25-47.09-92.36-2.85-17.38-2.09-51.46,1.52-67.73,13.88-62.68,57.62-110.71,118.17-129.81,20.84-6.56,34.66-8.63,57.08-8.52,17.03.08,22.39.76,38.55,4.89,41.08,10.52,74.58,32.86,99.59,66.44,42.85,57.5,44.38,142.14,3.71,203.24-10.27,15.43-34.22,38.96-50.32,49.45-34.93,22.77-66.19,30.79-109.04,27.99ZM1387,338.47c12.66-3.27,23.74-10.47,38.32-24.9,12.88-12.74,23.39-28.13,28.54-41.76,1.29-3.39,3.47-7.88,4.84-9.98s3.71-7.81,5.22-12.69c4.84-15.77.65-40.78-10.85-64.76-9.59-20-23.27-33.68-43.27-43.29-17.05-8.17-25.72-10.15-44.57-10.15-43.67,0-79.05,25.52-92.83,66.97-5.88,17.72-7.85,35.45-5.68,51.03,9.03,64.55,62.62,104.46,120.27,89.54ZM1994.43,412.43c-43.93-3.87-82.56-22.28-111.87-53.33-27.41-29.04-42.19-63.18-46.35-107.12-3.99-42.04,8.45-89.5,32.53-124.09,8.45-12.13,26.56-30.53,38.4-39.01,41.6-29.77,103.94-37.53,156.72-19.53,32.27,11.02,65.33,40.58,81.64,73,11.11,22.08,19.39,55.69,19.39,78.7,0,12.36-.53,15.39-3.96,22.25-2.19,4.37-6.16,9.63-8.86,11.69-11.16,8.51-8.92,8.36-125.8,8.36-59.28,0-108.08.52-108.45,1.14-2.83,4.81,11.92,38.26,21.8,49.5,9.03,10.24,26.88,21.61,41.54,26.44,10.97,3.61,14.92,4.11,32.28,4.12,28.81.03,46.71-5.86,70.79-23.3,12.18-8.81,15.92-10.85,22.77-12.4,18.22-4.11,39.65,13.79,39.6,33.1-.03,15.25-8.84,26.77-32.71,42.78-32.74,21.95-74.53,31.64-119.48,27.7ZM2083.77,201.1c-1.29-10.9-7.98-29.65-13.84-38.81-10.9-17.03-26.67-28.98-44.35-33.59-11.23-2.92-33.9-2.98-44.66-.12-31.84,8.48-54.37,35.46-63.26,75.8l-.93,4.19h167.91l-.88-7.46ZM630.67,408.05c-12.22-3.73-22.53-13.65-26.47-25.52-2.27-6.85-2.47-21.02-2.09-150.5l.41-142.95,3.27-6.1c6.97-13.01,16.01-19.01,30.36-20.17,27.46-2.21,42.75,9.76,45.52,35.59l1,9.33,12.42-12.51c20.05-20.18,41.17-30.75,68.75-34.4,26-3.44,54.64.97,76.48,11.75,11.99,5.94,30.03,21.48,37.61,32.4l4.34,6.26,11.58-11.28c21.2-20.64,45.72-33.56,72.49-38.23,42.08-7.34,85.68,3.15,111.99,26.94,17.72,16.03,31.37,45.63,34.78,75.43.87,7.5,1.54,56.3,1.54,112.34.02,107.38-.02,107.78-8.33,118.67-8.34,10.93-29.38,17.06-44.49,12.97-8.69-2.34-18.68-10.26-23.27-18.46l-3.81-6.77-.9-95.89c-.97-104.64-1.1-106.16-10.15-123.15-6.27-11.75-19.71-24.29-30.3-28.28-32.3-12.13-69.75,1.89-84.88,31.78-9.22,18.22-8.98,15.31-9.91,119.65-.93,106.38-.29,100-11.2,111.49-13.41,14.14-42.65,14.49-56.86.68-12.54-12.16-11.81-5.65-12.72-115.22-.73-89.12-1.03-98.13-3.59-105.78-7.03-21.1-16.73-32.88-34.08-41.41-9.68-4.78-10.96-5.01-26.94-4.9-19.01.11-25.6,1.96-38.64,10.9-10.18,6.97-21.87,23.26-26.44,36.83-3.29,9.79-3.38,12.08-4.17,105.13l-.79,95.13-4.34,8.83c-4.82,9.85-11.38,15.13-23.15,18.68-7.73,2.33-18.78,2.66-25.04.76ZM1635.44,407.71c-12.18-3.5-21.03-11.95-25.36-24.22-3.2-9.06-3.27-288.15-.08-297.09,5.24-14.7,15.94-22.22,33.41-23.52,12.97-.97,21.13.99,29.59,7.12,10.43,7.56,12.92,14.31,13.68,37.14l.65,19.6,5.54-10.47c16.82-31.81,39.04-50.65,65.28-55.34,20.55-3.67,37.09,3.5,45.2,19.54,6.19,12.27,4.14,33.65-4.28,44.69-6.54,8.58-11.4,11.11-28.4,14.78-31.31,6.77-52.74,23.17-66.07,50.59-14.19,29.13-16.12,44.23-16.13,126.02l-.02,63.21-3.59,7.72c-8.04,17.26-29.39,25.98-49.44,20.21Z"/></svg>
+      <span class="sep"></span>
+      <span class="app">Usage Monitor</span>
+    </div>
+    <div class="status off" id="status"><span class="dot"></span><span id="statusText">Nessun dato</span></div>
+  </nav>
+
+  <header class="hero">
+    <div class="ghost">USAGE / 01</div>
+    <div class="eyebrow">Mission Control · Claude Code</div>
+    <h1>Consumo abbonamento <span class="dim">Claude.</span></h1>
+    <div class="hero-meta">
+      <span>Modello <b id="metaModel">—</b></span>
+      <span>Ultimo dato <b id="metaUpdated">—</b></span>
+    </div>
+  </header>
+
+  <main class="panels" id="panels">
+    <div class="empty" id="emptyState">
+      <div class="t">In attesa del primo dato</div>
+      <div class="s">Apri una sessione Claude Code sul Mac: la statusline inoltra
+      automaticamente i dati di <code>/usage</code> a questo monitor. Appena arriva
+      il primo payload, i pannelli si attivano da soli.</div>
+    </div>
+  </main>
+
+  <div class="strip">
+    <span>Refresh automatico <b>30s</b> · prossimo tra <b id="nextRefresh">30s</b></span>
+    <span class="grow"></span>
+    <span class="ref">FONTE · STATUSLINE CLAUDE CODE</span>
+  </div>
+
+  <footer>
+    <span>More Digital Lab · Mission Control</span>
+    <span id="year"></span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const REFRESH_S = 30;
+const WINDOW_LABELS = {
+  five_hour:      { eyebrow: "Sessione", code: "5H",  desc: "Limite sessione · finestra 5 ore" },
+  seven_day:      { eyebrow: "Settimana", code: "7G", desc: "Limite settimanale · tutti i modelli" },
+  seven_day_sonnet:{ eyebrow: "Settimana · Sonnet", code: "7G", desc: "Limite settimanale · Sonnet" },
+  seven_day_opus: { eyebrow: "Settimana · Opus", code: "7G", desc: "Limite settimanale · Opus" }
+};
+let lastData = null;
+let nextIn = REFRESH_S;
+
+function pct(entry){
+  if (entry == null) return null;
+  if (typeof entry === "number") return entry;
+  const v = entry.used_percentage ?? entry.utilization ?? entry.used_pct ?? entry.percent ?? null;
+  return typeof v === "number" ? v : null;
+}
+function resetEpochMs(entry){
+  if (!entry || typeof entry !== "object") return null;
+  let r = entry.resets_at ?? entry.reset_at ?? entry.resets ?? null;
+  if (r == null) return null;
+  if (typeof r === "string"){ const t = Date.parse(r); return isNaN(t) ? null : t; }
+  if (typeof r === "number") return r > 1e12 ? r : r * 1000;
+  return null;
+}
+function sevClass(p){ return p >= 90 ? "crit" : p >= 70 ? "warn" : "ok"; }
+const KIOSK = window.matchMedia("(max-height:420px)");
+function fmtCountdown(ms){
+  if (ms == null) return "—";
+  if (ms <= 0) return "reset avvenuto";
+  const s = Math.floor(ms/1000);
+  const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+  if (KIOSK.matches){
+    if (d > 0) return d + "g " + h + "h";
+    if (h > 0) return h + "h " + String(m).padStart(2,"0") + "m";
+    return m + "m " + String(s%60).padStart(2,"0") + "s";
+  }
+  if (d > 0) return d + "g " + h + "h " + m + "m";
+  if (h > 0) return h + "h " + String(m).padStart(2,"0") + "m";
+  return m + "m " + String(s%60).padStart(2,"0") + "s";
+}
+function fmtAbs(ms){
+  if (ms == null) return "—";
+  const dt = new Date(ms);
+  return dt.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"}) +
+         " · " + dt.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
+}
+function fmtAgo(sec){
+  if (sec < 60) return "adesso";
+  const m = Math.floor(sec/60);
+  if (m < 60) return m + " min fa";
+  const h = Math.floor(m/60);
+  if (h < 24) return h + "h " + (m%60) + "m fa";
+  return Math.floor(h/24) + "g fa";
+}
+function labelFor(key){
+  if (WINDOW_LABELS[key]) return WINDOW_LABELS[key];
+  return { eyebrow: key.replace(/_/g," "), code: "", desc: "Finestra " + key.replace(/_/g," ") };
+}
+function fmtDur(ms){
+  if (typeof ms !== "number") return null;
+  const m = Math.floor(ms/60000);
+  return m >= 60 ? Math.floor(m/60) + "h " + String(m%60).padStart(2,"0") + "m" : m + "m";
+}
+function esc(s){
+  return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function sessionPanel(payload, receivedAt){
+  const cost = payload.cost, ctx = payload.context_window, ws = payload.workspace;
+  if (!cost && !ctx) return "";
+  const age = receivedAt ? fmtAgo((Date.now() - receivedAt * 1000) / 1000) : "";
+  const repo = ws && ws.repo ? ws.repo.owner + "/" + ws.repo.name
+    : (ws && ws.project_dir ? ws.project_dir.split("/").pop() : "");
+  const name = payload.session_name || "Sessione Claude Code";
+  const ctxPct = ctx && typeof ctx.used_percentage === "number" ? ctx.used_percentage : null;
+  const sid = payload.session_id || "s";
+  const stats = [];
+  if (ctxPct != null) stats.push(
+    '<div class="stat"><div class="sl">Contesto</div><div class="sv"><span data-num data-key="' + sid +
+    ':ctx" data-val="' + ctxPct + '" data-dec="0">' + Math.round(ctxPct) +
+    '</span><small>%</small></div><div class="mini"><i data-bar data-key="' + sid +
+    ':ctxb" data-val="' + ctxPct + '" style="transform:translateX(-' +
+    (100 - Math.min(100, ctxPct)) + '%)"></i></div></div>');
+  if (cost && typeof cost.total_cost_usd === "number") stats.push(
+    '<div class="stat"><div class="sl">Costo</div><div class="sv"><span data-num data-key="' + sid +
+    ':usd" data-val="' + cost.total_cost_usd + '" data-dec="2">' + cost.total_cost_usd.toFixed(2) +
+    '</span><small> $</small></div></div>');
+  if (cost && typeof cost.total_lines_added === "number") stats.push(
+    '<div class="stat"><div class="sl">Righe</div><div class="sv"><span class="plus">+<span data-num data-key="' + sid +
+    ':la" data-val="' + cost.total_lines_added + '" data-dec="0">' + cost.total_lines_added +
+    '</span></span><small> / </small><span class="minus">−<span data-num data-key="' + sid +
+    ':lr" data-val="' + (cost.total_lines_removed || 0) + '" data-dec="0">' + (cost.total_lines_removed || 0) +
+    '</span></span></div></div>');
+  const wall = cost && fmtDur(cost.total_duration_ms), api = cost && fmtDur(cost.total_api_duration_ms);
+  if (wall) stats.push(
+    '<div class="stat"><div class="sl">Durata</div><div class="sv">' + wall +
+    (api ? '<small> · API ' + api + '</small>' : '') + '</div></div>');
+  if (!stats.length) return "";
+  return '<section class="panel wide">' +
+    '<div class="panel-head"><div class="eyebrow">Sessione · ' + (age || "—") + '</div>' +
+    '<div class="win-code">' + esc(repo).toUpperCase() + '</div></div>' +
+    '<div class="sess-name">' + esc(name) + '</div>' +
+    '<div class="stats">' + stats.join("") + '</div></section>';
+}
+
+function render(){
+  const panels = document.getElementById("panels");
+  const statusEl = document.getElementById("status");
+  const statusText = document.getElementById("statusText");
+  const payload = lastData && lastData.payload;
+  const receivedAt = lastData && lastData.received_at ? lastData.received_at * 1000 : null;
+
+  const model = payload && payload.model && (payload.model.display_name || payload.model.id);
+  const effort = payload && payload.effort && payload.effort.level;
+  document.getElementById("metaModel").textContent =
+    model ? model + (effort ? " · " + effort : "") : "—";
+  document.getElementById("metaUpdated").textContent =
+    receivedAt ? fmtAgo((Date.now() - receivedAt)/1000) : "—";
+
+  if (!payload){
+    statusEl.className = "status off";
+    statusText.textContent = "Nessun dato";
+    return;
+  }
+  const ageMin = (Date.now() - receivedAt) / 60000;
+  if (ageMin < 30){ statusEl.className = "status live"; statusText.textContent = "Live"; }
+  else { statusEl.className = "status stale"; statusText.textContent = "Ultimo dato " + fmtAgo(ageMin*60); }
+
+  const rl = payload.rate_limits || payload.rateLimits || null;
+  const entries = [];
+  if (rl && typeof rl === "object"){
+    for (const [key, entry] of Object.entries(rl)){
+      if (entry && typeof entry === "object" && pct(entry) != null) entries.push([key, entry]);
+    }
+  }
+  if (!entries.length){
+    panels.innerHTML =
+      '<div class="empty"><div class="t">Payload ricevuto, ma senza rate_limits</div>' +
+      '<div class="s">La versione di Claude Code sul Mac potrebbe non esporre ancora i dati di ' +
+      '<code>/usage</code> nella statusline. Aggiorna Claude Code (v2.1.80+) e riprova.</div></div>';
+    return;
+  }
+  let html = entries.map(([key, entry]) => {
+    const p = pct(entry);
+    const cls = sevClass(p);
+    const resetMs = resetEpochMs(entry);
+    const remain = resetMs != null ? resetMs - Date.now() : null;
+    const L = labelFor(key);
+    return '<section class="panel">' +
+      '<div class="panel-head"><div class="eyebrow">' + L.eyebrow + '</div>' +
+      '<div class="win-code">' + (L.code ? "FINESTRA · " + L.code : "") + '</div></div>' +
+      '<div class="big ' + cls + '"><span data-num data-key="w:' + key + '" data-val="' + p +
+        '" data-dec="0">' + Math.round(p) + '</span><small>%</small></div>' +
+      '<div class="bar"><i class="' + cls + '" data-bar data-key="wb:' + key + '" data-val="' + p +
+        '" style="transform:translateX(-' + (100 - Math.min(100, Math.max(0, p))) + '%)"></i></div>' +
+      '<div class="panel-rows">' +
+        '<div class="prow"><span class="k">' + L.desc + '</span>' +
+          '<span class="v"><span data-num data-key="wd:' + key + '" data-val="' + p +
+          '" data-dec="1">' + p.toFixed(1) + '</span>% usato</span></div>' +
+        '<div class="prow"><span class="k">Reset tra</span>' +
+          '<span class="v hot" data-reset="' + (resetMs ?? "") + '">' + fmtCountdown(remain) + '</span></div>' +
+        '<div class="prow"><span class="k">Reset alle</span>' +
+          '<span class="v">' + fmtAbs(resetMs) + '</span></div>' +
+      '</div></section>';
+  }).join("");
+  const sessions = Array.isArray(lastData.sessions) && lastData.sessions.length
+    ? lastData.sessions
+    : [{ received_at: lastData.received_at, payload }];
+  panels.innerHTML = html +
+    sessions.map(s => s.payload ? sessionPanel(s.payload, s.received_at) : "").join("");
+  animateValues(panels);
+  applyRotation();
+}
+
+/* Tween dei valori numerici: dal valore precedente al nuovo, con easing.
+   Le chiavi (data-key) sopravvivono ai re-render, i valori vengono ricordati. */
+const prevNums = {}, prevBars = {};
+function animateValues(root){
+  root.querySelectorAll("[data-num]").forEach(el => {
+    const key = el.dataset.key, target = parseFloat(el.dataset.val), dec = +(el.dataset.dec || 0);
+    if (!isFinite(target)) return;
+    const from = isFinite(prevNums[key]) ? prevNums[key] : target;
+    prevNums[key] = target;
+    if (from === target){ el.textContent = target.toFixed(dec); return; }
+    const t0 = performance.now(), dur = 900;
+    (function step(t){
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = (from + (target - from) * e).toFixed(dec);
+      if (k < 1 && el.isConnected) requestAnimationFrame(step);
+    })(t0);
+  });
+  root.querySelectorAll("[data-bar]").forEach(el => {
+    const key = el.dataset.key;
+    const target = Math.min(100, Math.max(0, parseFloat(el.dataset.val) || 0));
+    const from = isFinite(prevBars[key]) ? prevBars[key] : target;
+    prevBars[key] = target;
+    if (from === target) return;
+    el.style.transition = "none";
+    el.style.transform = "translateX(-" + (100 - from) + "%)";
+    void el.offsetWidth;
+    el.style.transition = "";
+    el.style.transform = "translateX(-" + (100 - target) + "%)";
+  });
+}
+
+/* Rotazione sessioni in modalità kiosk: una card alla volta, cambio ogni 10s */
+let rotIdx = 0;
+function applyRotation(){
+  const wides = document.querySelectorAll(".panel.wide");
+  if (!wides.length) return;
+  if (rotIdx >= wides.length) rotIdx = 0;
+  wides.forEach((el, i) => el.classList.toggle("rot-active", i === rotIdx));
+}
+setInterval(() => {
+  if (!KIOSK.matches) return;
+  const n = document.querySelectorAll(".panel.wide").length;
+  if (n < 2) return;
+  rotIdx = (rotIdx + 1) % n;
+  applyRotation();
+}, 10000);
+KIOSK.addEventListener("change", applyRotation);
+
+async function fetchData(){
+  try{
+    const res = await fetch("/api/usage", { cache: "no-store" });
+    if (res.ok) lastData = await res.json();
+  }catch(e){ /* offline: si mantiene l'ultimo dato */ }
+  nextIn = REFRESH_S;
+  render();
+}
+
+// tick 1s: countdown reset + countdown refresh, senza rifare il layout
+setInterval(() => {
+  nextIn = Math.max(0, nextIn - 1);
+  document.getElementById("nextRefresh").textContent = nextIn + "s";
+  document.querySelectorAll("[data-reset]").forEach(el => {
+    const v = el.getAttribute("data-reset");
+    if (v) el.textContent = fmtCountdown(Number(v) - Date.now());
+  });
+  if (lastData && lastData.received_at)
+    document.getElementById("metaUpdated").textContent = fmtAgo(Date.now()/1000 - lastData.received_at);
+}, 1000);
+
+setInterval(fetchData, REFRESH_S * 1000);
+document.getElementById("year").textContent = new Date().getFullYear();
+fetchData();
+</script>
+</body>
+</html>

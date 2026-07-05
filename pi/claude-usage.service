@@ -1,0 +1,16 @@
+[Unit]
+Description=Claude Usage Monitor (More Digital Lab)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/claude-usage-monitor
+ExecStart=/usr/bin/python3 /home/pi/claude-usage-monitor/server.py
+Restart=always
+RestartSec=5
+Environment=PORT=8787
+
+[Install]
+WantedBy=multi-user.target
