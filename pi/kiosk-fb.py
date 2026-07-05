@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Claude Usage Monitor — renderer kiosk nativo per framebuffer.
 
-Disegna la vista kiosk (stessa grafica di index.html sotto i 420px)dritto
+Disegna la vista kiosk (stessa grafica di index.html sotto i 420px) dritto
 sul framebuffer, senza X né browser: pensato per Pi Zero W con pannelli SPI.
 Legge i dati dalla stessa API della pagina web: GET /api/usage su localhost.
 
@@ -11,6 +11,7 @@ Uso:
 """
 
 import argparse
+import datetime
 import json
 import os
 import time
@@ -193,12 +194,12 @@ def format_countdown(resets_at, now):
         return "ora"
     d, rem = divmod(s, 86400)
     h, rem = divmod(rem, 3600)
-    m = rem // 60
+    m, sec = divmod(rem, 60)
     if d:
         return f"{d}g {h:02d}h"
     if h:
         return f"{h}h {m:02d}m"
-    return f"{m}m"
+    return f"{m}m {sec:02d}s"
 
 
 def format_duration(ms):
@@ -209,7 +210,8 @@ def format_duration(ms):
 
 
 def _session_view(entry):
-    p = entry.get("payload") or {}
+    p = entry.get("payload")
+    p = p if isinstance(p, dict) else {}
     ws = p.get("workspace") or {}
     cost = p.get("cost") or {}
     name = (os.path.basename((ws.get("current_dir") or "").rstrip("/"))
@@ -230,11 +232,37 @@ def _session_view(entry):
     return {"name": name, "meta": " · ".join(parts)}
 
 
+def _reset_epoch(value):
+    """Normalizza resets_at in epoch-secondi float, o None. Rispecchia
+    resetEpochMs() di index.html: numero (ms se > 1e12, altrimenti secondi)
+    oppure stringa ISO 8601 (anche con suffisso 'Z')."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return value / 1000.0 if value > 1e12 else float(value)
+    if isinstance(value, str):
+        v = value[:-1] + "+00:00" if value.endswith("Z") else value
+        try:
+            return datetime.datetime.fromisoformat(v).timestamp()
+        except ValueError:
+            return None
+    return None
+
+
+def _pct(win):
+    """Percentuale d'uso con gli stessi alias di pct() in index.html."""
+    for key in ("used_percentage", "utilization", "used_pct", "percent"):
+        v = win.get(key)
+        if v is not None:
+            return float(v)
+    return 0.0
+
+
 def parse_state(snap, now):
     if not isinstance(snap, dict):
         return {"status": "no-server"}
     payload = snap.get("payload")
-    if not payload:
+    if not isinstance(payload, dict):
         return {"status": "no-data"}
     rl = payload.get("rate_limits") or {}
     keys = ([k for k in PREF_ORDER if k in rl]
@@ -245,8 +273,8 @@ def parse_state(snap, now):
         windows.append({
             "key": k,
             "label": WINDOW_LABELS.get(k, k.replace("_", " ").upper()),
-            "pct": float(win.get("used_percentage") or 0.0),
-            "resets_at": win.get("resets_at"),
+            "pct": _pct(win),
+            "resets_at": _reset_epoch(win.get("resets_at")),
         })
     return {
         "status": "ok",
@@ -274,7 +302,7 @@ def frame_to_bytes(img, bpp):
         return bytes(out)
     if bpp == 24:
         return img.tobytes("raw", "BGR")
-    return img.tobytes("raw", "BGRX")          # 32bpp XRGB little-endian
+    return img.tobytes("raw", "BGRX")          # 32bpp XRGB, byte meno significativo per primo
 
 
 def pad_rows(data, width, bpp, stride):

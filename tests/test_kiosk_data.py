@@ -69,7 +69,7 @@ class TestFormats(unittest.TestCase):
                          "4h 32m")
 
     def test_countdown_minutes(self):
-        self.assertEqual(K.format_countdown(NOW + 12 * 60 + 30, NOW), "12m")
+        self.assertEqual(K.format_countdown(NOW + 12 * 60 + 30, NOW), "12m 30s")
 
     def test_countdown_past_and_missing(self):
         self.assertEqual(K.format_countdown(NOW - 5, NOW), "ora")
@@ -78,6 +78,52 @@ class TestFormats(unittest.TestCase):
     def test_duration(self):
         self.assertEqual(K.format_duration(3_840_000), "1h 04m")
         self.assertEqual(K.format_duration(300_000), "5m")
+
+
+class TestResetsAtNormalization(unittest.TestCase):
+    def test_iso_string_with_z_suffix(self):
+        # NOW + 7200s == 2025-07-06T13:06:40Z
+        snap = {"received_at": NOW, "sessions": [], "payload": {"rate_limits": {
+            "five_hour": {"used_percentage": 1,
+                          "resets_at": "2025-07-06T13:06:40Z"}}}}
+        st = K.parse_state(snap, NOW)
+        self.assertAlmostEqual(st["windows"][0]["resets_at"], NOW + 7200, places=0)
+
+    def test_millisecond_epoch(self):
+        ms = (NOW + 3600) * 1000
+        snap = {"received_at": NOW, "sessions": [], "payload": {"rate_limits": {
+            "five_hour": {"used_percentage": 1, "resets_at": ms}}}}
+        st = K.parse_state(snap, NOW)
+        self.assertAlmostEqual(st["windows"][0]["resets_at"], NOW + 3600, places=3)
+
+    def test_unparsable_string_is_none(self):
+        snap = {"received_at": NOW, "sessions": [], "payload": {"rate_limits": {
+            "five_hour": {"used_percentage": 1, "resets_at": "not-a-date"}}}}
+        st = K.parse_state(snap, NOW)
+        self.assertIsNone(st["windows"][0]["resets_at"])
+        self.assertEqual(K.format_countdown(None, NOW), "—")
+
+    def test_percentage_alias_utilization(self):
+        snap = {"received_at": NOW, "sessions": [], "payload": {"rate_limits": {
+            "five_hour": {"utilization": 33.5}}}}
+        st = K.parse_state(snap, NOW)
+        self.assertEqual(st["windows"][0]["pct"], 33.5)
+
+
+class TestNonDictPayload(unittest.TestCase):
+    def test_string_payload_is_no_data(self):
+        snap = {"received_at": NOW, "payload": "oops", "sessions": []}
+        self.assertEqual(K.parse_state(snap, NOW)["status"], "no-data")
+
+    def test_list_payload_is_no_data(self):
+        snap = {"received_at": NOW, "payload": [1, 2, 3], "sessions": []}
+        self.assertEqual(K.parse_state(snap, NOW)["status"], "no-data")
+
+    def test_session_entry_with_string_payload_falls_back(self):
+        entry = {"received_at": NOW, "payload": "oops"}
+        view = K._session_view(entry)
+        self.assertEqual(view["name"], "sessione")
+        self.assertEqual(view["meta"], "")
 
 
 if __name__ == "__main__":

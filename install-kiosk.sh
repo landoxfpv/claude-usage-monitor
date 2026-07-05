@@ -72,7 +72,8 @@ WantedBy=multi-user.target"
     if [ -z "$CHROMIUM" ]; then
       sudo apt-get install -y chromium-browser >/dev/null 2>&1 \
         || sudo apt-get install -y chromium >/dev/null
-      CHROMIUM=$(command -v chromium-browser || command -v chromium)
+      CHROMIUM=$(command -v chromium-browser || command -v chromium || true)
+      [ -z "$CHROMIUM" ] && { echo "✗ Chromium non trovato dopo l'installazione"; exit 1; }
     fi
     UNIT="[Unit]
 Description=Claude Usage Monitor Kiosk (Chromium)
