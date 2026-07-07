@@ -47,6 +47,7 @@ o riutilizzato: si usa solo il meccanismo ufficiale della statusline.
 Sul **Raspberry Pi** (qualsiasi modello, serve solo Python 3, preinstallato):
 
 ```sh
+# se 'git: command not found': sudo apt update && sudo apt install -y git
 git clone https://github.com/landoxfpv/claude-usage-monitor && cd claude-usage-monitor
 ./install-pi.sh
 ```
@@ -64,6 +65,10 @@ Installa il forwarder in `~/.claude/usage-monitor/`, configura la statusline
 in `settings.json` e — se ne avevi già una personalizzata — **la preserva
 automaticamente**: il forwarder continuerà a delegarle la stampa. Rilanciarlo
 è sicuro (idempotente), ad esempio per cambiare l'indirizzo del Pi.
+
+Lancia entrambi gli installer come utente normale, **non con `sudo`**:
+chiedono sudo da soli dove serve, e si rifiutano di girare come root
+(altrimenti i file finirebbero in `/root` e il servizio girerebbe come root).
 
 ## Setup manuale Raspberry Pi
 
@@ -165,3 +170,12 @@ open http://localhost:8787
   repo, nome sessione): restano sulla tua rete, ma tienine conto.
 - Se la pagina mostra "Payload ricevuto, ma senza rate_limits", aggiorna
   Claude Code sul Mac: i dati di /usage nella statusline richiedono v2.1.80+.
+- Se riscrivi la microSD del Pi, il successivo `ssh` rifiuterà la connessione
+  con `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED`. È normale — il nuovo
+  OS ha generato nuove chiavi SSH, non è un attacco. Rimedio:
+  `ssh-keygen -R raspberrypi.local` (o l'IP che usi), riconnettiti e rispondi
+  `yes`.
+- I warning di locale al login su un Pi appena installato (`setlocale:
+  LC_CTYPE: cannot change locale`) sono cosmetici e ignorabili. Per
+  eliminarli: `sudo raspi-config` → Localisation Options, oppure
+  `sudo apt install -y locales-all`.
