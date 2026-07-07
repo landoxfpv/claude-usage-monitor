@@ -6,6 +6,13 @@
 # Rilanciarlo è il modo per cambiare motore o framebuffer.
 set -euo pipefail
 
+if [ "$(id -u)" -eq 0 ]; then
+  echo "✗ Non lanciare questo script con sudo: eseguilo come utente normale."
+  echo "  (chiede sudo da solo dove serve; con sudo i file finirebbero in /root"
+  echo "   e il servizio girerebbe come root)"
+  exit 1
+fi
+
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/claude-usage-monitor"
 PORT="${PORT:-8787}"

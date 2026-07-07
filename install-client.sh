@@ -11,6 +11,13 @@
 #   ./install-client.sh http://pi:9000/api/usage # URL completo
 set -euo pipefail
 
+if [ "$(id -u)" -eq 0 ]; then
+  echo "✗ Non lanciare questo script con sudo: eseguilo come utente normale."
+  echo "  (con sudo configurerebbe la statusline di root in /root/.claude"
+  echo "   invece della tua)"
+  exit 1
+fi
+
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 DEST_DIR="$CLAUDE_DIR/usage-monitor"
