@@ -119,9 +119,14 @@ It detects your Pi and proposes one of two engines (Enter accepts):
   framebuffer, no X and no browser. Same design, 1 s refresh. This is the
   engine for the original Pi Zero W, and for GPIO/SPI panels.
 
-GPIO/SPI panels (e.g. 3.5" ST7796S shields) need a kernel driver first —
-see [docs/display-st7796s.md](docs/display-st7796s.md). Re-run the installer
-to switch engine or framebuffer; remove with
+GPIO/SPI panels (3.5" ST7796S shields, or a 4.0" ST7796S module wired by
+hand) need a kernel driver first, so `/dev/fb1` exists before the native
+engine can draw on it — see
+[docs/display-st7796s.md](docs/display-st7796s.md). It covers the concepts
+(framebuffer vs DRM, the modeset/backlight gotchas) and two verified recipes:
+`fbtft`/LCD-show for the 3.5" shield, and `panel-mipi-dbi` (tested on a Pi
+Zero W + Raspberry Pi OS Trixie) for the 4.0" panel. Re-run the installer to
+switch engine or framebuffer; remove with
 `sudo systemctl disable --now claude-kiosk`.
 
 ## Quick test without a Pi

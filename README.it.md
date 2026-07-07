@@ -138,9 +138,14 @@ Riconosce il tuo Pi e propone uno dei due motori (Invio conferma):
   sul framebuffer, niente X e niente browser. Stesso design, refresh a 1 s.
   È il motore per il Pi Zero W originale e per i pannelli GPIO/SPI.
 
-I pannelli GPIO/SPI (es. shield 3.5" ST7796S) richiedono prima un driver del
-kernel — vedi [docs/display-st7796s.md](docs/display-st7796s.md). Rilancia
-l'installer per cambiare motore o framebuffer; per rimuoverlo:
+I pannelli GPIO/SPI (shield 3.5" ST7796S, oppure un modulo 4.0" ST7796S
+cablato a mano) richiedono prima un driver del kernel, così che `/dev/fb1`
+esista prima che il renderer nativo possa disegnarci — vedi
+[docs/display-st7796s.md](docs/display-st7796s.md). Copre i concetti
+(framebuffer vs DRM, le trappole di modeset e retroilluminazione) e due ricette
+verificate: `fbtft`/LCD-show per lo shield 3.5" e `panel-mipi-dbi` (provata su
+Pi Zero W + Raspberry Pi OS Trixie) per il pannello 4.0". Rilancia l'installer
+per cambiare motore o framebuffer; per rimuoverlo:
 `sudo systemctl disable --now claude-kiosk`.
 
 ## Test rapido senza Pi

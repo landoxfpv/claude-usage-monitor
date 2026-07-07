@@ -88,10 +88,17 @@ the user.
   process drawing straight to the framebuffer, no browser; default on
   `armv6l`, i.e. the original Pi Zero W). `/dev/fb1` is preferred over
   `/dev/fb0` when present (typical of SPI panels).
-- **GPIO/SPI panels** (e.g. 3.5" ST7796S shields) need a kernel driver
-  first, producing a working `/dev/fb1` — walk the user through
-  `docs/display-st7796s.md` before running the native engine on such a
-  panel.
+- **GPIO/SPI panels** (3.5" ST7796S shields, or a 4.0" ST7796S module wired
+  by hand) need a kernel driver first, producing a working `/dev/fb1` — walk
+  the user through `docs/display-st7796s.md` before running the native engine.
+  Two routes: `fbtft`/LCD-show (older OS, shields) and `panel-mipi-dbi` (the
+  modern DRM path, verified on Pi Zero W + Raspberry Pi OS Trixie). Key gotchas
+  when debugging a blank panel on the DRM path: (a) `/dev/fb1` can exist but the
+  pipeline stay `disabled` — a modeset is needed (`fbset`/`panel-enable.service`),
+  or writes go nowhere and the screen is **white**; (b) the backlight may boot
+  in `bl_power=4` (off); (c) colours as a photo negative → flip `INVON`/`INVOFF`
+  in `panel.bin`. Do **not** give a boot-time helper both `After=` and
+  `WantedBy=multi-user.target` (ordering cycle → systemd drops the kiosk start).
 - **Verify**: `systemctl is-active claude-kiosk` → must return `active`; on
   failure check `journalctl -u claude-kiosk -e`.
 - **Remove**: `sudo systemctl disable --now claude-kiosk`.

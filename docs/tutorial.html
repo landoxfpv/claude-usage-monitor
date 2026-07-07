@@ -241,8 +241,12 @@ cd claude-usage-monitor
     <p>Lo script riconosce il tuo Pi e propone il motore giusto (basta premere
     Invio): <b>Chromium</b> a schermo intero sui Pi recenti, oppure un
     <b>renderer leggero</b> senza browser per il Pi Zero W e i pannelli SPI.
-    I pannelli GPIO/SPI (come gli shield 3.5" ST7796S) richiedono prima il
-    driver: segui <code>docs/display-st7796s.md</code>. Per rimuovere il kiosk:
+    I pannelli GPIO/SPI (gli shield 3.5" ST7796S, o un modulo 4.0" ST7796S
+    cablato a mano) richiedono prima il driver che crea <code>/dev/fb1</code>:
+    segui <code>docs/display-st7796s.md</code>, che spiega i concetti e riporta
+    due ricette verificate (<code>fbtft</code>/LCD-show per lo shield,
+    <code>panel-mipi-dbi</code> provato su Pi Zero W + Raspberry Pi OS Trixie
+    per il 4.0"). Per rimuovere il kiosk:
     <code>sudo systemctl disable --now claude-kiosk</code>.</p>
     <p>Con più sessioni attive, le card ruotano da sole ogni 10 secondi.</p>
   </section>
