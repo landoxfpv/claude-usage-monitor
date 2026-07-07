@@ -29,6 +29,10 @@ verify, and where to stop.
    walk the user through `docs/tutorial.html` (STEP 01): the microSD is
    prepared with Raspberry Pi Imager, WiFi and SSH are set there. You cannot
    do that part for them.
+4. If the Pi was re-flashed since the last connection, `ssh` fails with
+   `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED`. Expected after a
+   re-flash, not a security incident: run `ssh-keygen -R <pi-host-or-ip>`
+   on the computer, reconnect, accept the new key.
 
 ## Installation (use the installers, do not hand-roll)
 
@@ -38,10 +42,20 @@ verify, and where to stop.
 ssh <user>@<pi-host> 'git clone https://github.com/landoxfpv/claude-usage-monitor 2>/dev/null; cd claude-usage-monitor && git pull --ff-only 2>/dev/null; ./install-pi.sh'
 ```
 
-If `git` is missing on the Pi: `scp -r pi/ install-pi.sh <user>@<pi-host>:~/claude-usage-monitor/`
-and run the installer there. The installer needs sudo for systemd: if the SSH
-session cannot prompt for the sudo password, run it in an interactive session
-or ask the user to run it themselves.
+If `git` is missing on the Pi: `sudo apt update && sudo apt install -y git`.
+Fallback when apt is not viable:
+`scp -r pi/ install-pi.sh <user>@<pi-host>:~/claude-usage-monitor/` and run
+the installer there.
+
+**Never run the installers as root or via sudo** — they refuse and exit.
+With sudo, `$HOME` becomes `/root`: files land in `/root/claude-usage-monitor`
+and the service runs as `root`, diverging from this runbook. For
+non-interactive SSH sessions, pre-authenticate sudo first, then run the
+script as the normal user (it finds the cached credentials):
+
+```sh
+ssh <user>@<pi-host> 'echo <password> | sudo -S -v && cd claude-usage-monitor && ./install-pi.sh'
+```
 
 Verify: `curl -s http://<pi-host>:8787/health` → must return `{"ok":true}`.
 
