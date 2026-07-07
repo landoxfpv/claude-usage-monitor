@@ -191,6 +191,9 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--border-subtle
     <div class="term"><div class="term-bar">Terminale · sul Pi via SSH</div>
 <pre>ssh pi@raspberrypi.local
 
+<span class="c"># se dice "git: command not found", installalo prima:</span>
+sudo apt update && sudo apt install -y git
+
 <span class="c"># una volta dentro al Pi:</span>
 git clone https://github.com/landoxfpv/claude-usage-monitor
 cd claude-usage-monitor
@@ -252,6 +255,24 @@ cd claude-usage-monitor
         servono 2-3 minuti) oppure il nome host è diverso. Trova l'IP del Pi dall'app del
         tuo router (cerca un device "raspberrypi") e usa quello: <code>ssh pi@192.168.1.xx</code>.
         Controlla anche di aver salvato le impostazioni WiFi nell'Imager prima di scrivere la scheda.</div>
+      </details>
+      <details><summary>WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED</summary>
+        <div class="a">Succede dopo aver riscritto la microSD: il Pi ha una nuova identità
+        SSH e il tuo computer ricorda quella vecchia. Non è un attacco. Lancia
+        <code>ssh-keygen -R raspberrypi.local</code> (o l'IP che usi al posto del nome),
+        poi riconnettiti e rispondi <code>yes</code> alla domanda sulla nuova chiave.</div>
+      </details>
+      <details><summary>git: command not found sul Pi</summary>
+        <div class="a">L'immagine del sistema non include git. Installalo con
+        <code>sudo apt update &amp;&amp; sudo apt install -y git</code> e poi ripeti il
+        comando <code>git clone</code>. Sul Pi Zero W l'installazione può richiedere
+        un paio di minuti.</div>
+      </details>
+      <details><summary>Messaggi strani sulla "locale" quando entro nel Pi</summary>
+        <div class="a">Righe tipo <code>setlocale: LC_CTYPE: cannot change locale</code>
+        al login sono innocue: puoi ignorarle. Per eliminarle:
+        <code>sudo raspi-config</code> → Localisation Options, oppure
+        <code>sudo apt install -y locales-all</code>.</div>
       </details>
       <details><summary>La pagina non si apre</summary>
         <div class="a">Verifica che il servizio sia attivo: entra nel Pi via SSH e lancia
