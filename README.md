@@ -48,6 +48,7 @@ On the **Raspberry Pi** (any model — a Pi Zero W is plenty; Python 3 is
 preinstalled on Raspberry Pi OS, no dependencies needed):
 
 ```sh
+# if 'git: command not found': sudo apt update && sudo apt install -y git
 git clone https://github.com/landoxfpv/claude-usage-monitor
 cd claude-usage-monitor
 ./install-pi.sh
@@ -68,6 +69,10 @@ The client installer patches `~/.claude/settings.json` and, if you already had
 a custom statusline, **preserves it automatically** (the forwarder keeps
 delegating rendering to it). Re-running the installer is safe and is the way
 to change the Pi address later.
+
+Run both installers as your regular user, **not with `sudo`**: they ask for
+sudo on their own where needed, and refuse to run as root (otherwise files
+would land in `/root` and the service would run as root).
 
 Then open `http://raspberrypi.local:8787` from any device on your network and
 start a new Claude Code session.
@@ -141,6 +146,15 @@ open http://localhost:8787
   card; live data stays in memory.
 - Session cost is the API-equivalent value of your usage, not an actual charge
   on a subscription plan.
+- If you re-flash the Pi's SD card, the next `ssh` will refuse to connect
+  with `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED`. That is expected —
+  the fresh OS generated new SSH keys, it is not an attack. Fix:
+  `ssh-keygen -R raspberrypi.local` (or the IP you use), reconnect, answer
+  `yes`.
+- Locale warnings when logging into a fresh Pi (`setlocale: LC_CTYPE: cannot
+  change locale`) are cosmetic and safe to ignore. To silence them:
+  `sudo raspi-config` → Localisation Options, or
+  `sudo apt install -y locales-all`.
 
 ## Roadmap
 
