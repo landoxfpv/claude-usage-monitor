@@ -66,8 +66,8 @@ in `settings.json` e — se ne avevi già una personalizzata — **la preserva
 automaticamente**: il forwarder continuerà a delegarle la stampa. Rilanciarlo
 è sicuro (idempotente), ad esempio per cambiare l'indirizzo del Pi.
 
-Lancia entrambi gli installer come utente normale, **non con `sudo`**:
-chiedono sudo da soli dove serve, e si rifiutano di girare come root
+Lancia gli installer come utente normale, **non con `sudo`**:
+chiedono sudo da soli dove serve, e si rifiutano di partire come root
 (altrimenti i file finirebbero in `/root` e il servizio girerebbe come root).
 
 ## Setup manuale Raspberry Pi

@@ -70,7 +70,7 @@ a custom statusline, **preserves it automatically** (the forwarder keeps
 delegating rendering to it). Re-running the installer is safe and is the way
 to change the Pi address later.
 
-Run both installers as your regular user, **not with `sudo`**: they ask for
+Run the installers as your regular user, **not with `sudo`**: they ask for
 sudo on their own where needed, and refuse to run as root (otherwise files
 would land in `/root` and the service would run as root).
 
