@@ -1,0 +1,22 @@
+# Esempio di unit per accendere la pipeline del pannello DRM al boot.
+# install-kiosk.sh ne genera una equivalente con il percorso giusto quando
+# rileva un pannello DRM; usa questo file solo per setup manuali.
+#
+# Adatta il percorso di ExecStart a dove hai copiato panel-enable.sh.
+# NB: NON aggiungere "After=multi-user.target" a un servizio che e' anche
+# "WantedBy=multi-user.target" -> ciclo di ordinamento che fa saltare il kiosk.
+
+[Unit]
+Description=Enable DRM SPI panel pipeline (modeset via fbset)
+Before=claude-kiosk.service
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# passa il framebuffer, oppure lascia che lo script lo rilevi da solo
+ExecStart=/home/pi/claude-usage-monitor/panel-enable.sh /dev/fb1
+
+[Install]
+WantedBy=multi-user.target

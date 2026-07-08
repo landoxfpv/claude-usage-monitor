@@ -153,11 +153,21 @@ command 0x29        # DISPON: display acceso
 delay 20
 ```
 
-Puoi generare il `.bin` con lo strumento ufficiale
-([notro/panel-mipi-dbi](https://github.com/notro/panel-mipi-dbi), `mipi-dbi-cmd`)
-oppure, senza dipendenze, con questo generatore (formato: magic `MIPI DBI` +
-7 null + versione 1; ogni comando = `cmd, n_param, param…`; ogni delay =
-`0x00, 0x01, ms`):
+Questi file sono **già nel repo** in [`pi/mipi-dbi/`](../pi/mipi-dbi/): la
+sequenza è `st7796s.txt`, il generatore `gen-panel-bin.py`. Modo più rapido:
+
+```sh
+cd pi/mipi-dbi
+python3 gen-panel-bin.py st7796s.txt panel.bin
+sudo cp panel.bin /lib/firmware/panel.bin
+sudo reboot
+```
+
+In alternativa puoi usare lo strumento ufficiale
+([notro/panel-mipi-dbi](https://github.com/notro/panel-mipi-dbi), `mipi-dbi-cmd`),
+oppure — senza cloni né dipendenze — questo generatore inline (formato: magic
+`MIPI DBI` + 7 null + versione 1; ogni comando = `cmd, n_param, param…`; ogni
+delay = `0x00, 0x01, ms`):
 
 ```sh
 cat > /tmp/st7796.txt <<'INIT'
@@ -195,8 +205,16 @@ sudo reboot
 
 Dopo il reboot `/dev/fb1` esiste ma la pipeline è **disabilitata**
 (`cat /sys/class/drm/card0-SPI-1/enabled` → `disabled`) → schermo bianco. Va
-forzato **un** modeset con `fbset`. Per renderlo automatico e persistente crea
-un servizio, ordinato **prima** del kiosk:
+forzato **un** modeset con `fbset`.
+
+> **Scorciatoia:** `./install-kiosk.sh` fa tutto questo da solo — quando rileva
+> un pannello DRM copia `pi/mipi-dbi/panel-enable.sh`, crea e abilita
+> `panel-enable.service` e aggiunge il drop-in al kiosk. La sezione qui sotto
+> serve solo per capire cosa fa o per un setup manuale.
+
+Per renderlo automatico e persistente a mano, crea un servizio ordinato
+**prima** del kiosk (lo script `pi/mipi-dbi/panel-enable.sh` legge la geometria
+da sysfs, quindi vale per qualsiasi pannello):
 
 ```sh
 sudo tee /etc/systemd/system/panel-enable.service >/dev/null <<'UNIT'

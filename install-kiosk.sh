@@ -57,6 +57,39 @@ case "$ENGINE" in
     mkdir -p "$DEST/fonts"
     cp "$REPO_DIR/pi/kiosk-fb.py" "$DEST/"
     cp "$REPO_DIR"/pi/fonts/* "$DEST/fonts/"
+
+    # Pannello DRM (panel-mipi-dbi): la pipeline va abilitata con un modeset,
+    # altrimenti le scritture raw sul framebuffer non raggiungono il pannello
+    # (schermo bianco). Vedi docs/display-st7796s.md. Rilevo dal nome del fb e
+    # installo panel-enable (oneshot al boot, prima del kiosk).
+    FBNAME=$(cat "/sys/class/graphics/$(basename "$FBDEV")/name" 2>/dev/null || true)
+    case "$FBNAME" in
+      *panel*|*mipi*)
+        echo "· Pannello DRM rilevato ($FBNAME): configuro l'accensione al boot (panel-enable)…"
+        command -v fbset >/dev/null || sudo apt-get install -y fbset >/dev/null
+        cp "$REPO_DIR/pi/mipi-dbi/panel-enable.sh" "$DEST/"
+        chmod +x "$DEST/panel-enable.sh"
+        printf '%s\n' "[Unit]
+Description=Enable DRM SPI panel pipeline (modeset via fbset)
+Before=$SERVICE.service
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=$DEST/panel-enable.sh $FBDEV
+
+[Install]
+WantedBy=multi-user.target" | sudo tee /etc/systemd/system/panel-enable.service >/dev/null
+        sudo mkdir -p "/etc/systemd/system/$SERVICE.service.d"
+        printf '[Unit]\nAfter=panel-enable.service\nWants=panel-enable.service\n' \
+          | sudo tee "/etc/systemd/system/$SERVICE.service.d/10-after-panel.conf" >/dev/null
+        sudo systemctl daemon-reload
+        sudo systemctl enable --now panel-enable.service >/dev/null 2>&1 || true
+        ;;
+    esac
+
     UNIT="[Unit]
 Description=Claude Usage Monitor Kiosk (renderer nativo)
 After=claude-usage.service
@@ -112,7 +145,12 @@ sudo systemctl enable --now $SERVICE
 sleep 2
 if systemctl is-active --quiet $SERVICE; then
   echo "✓ Kiosk attivo sul display del Pi (motore: $ENGINE, partirà anche al boot)"
-  echo "  Per rimuoverlo: sudo systemctl disable --now $SERVICE"
+  if [ -e /etc/systemd/system/panel-enable.service ]; then
+    echo "  Accensione pannello DRM: panel-enable.service (attivo al boot)"
+    echo "  Per rimuovere: sudo systemctl disable --now $SERVICE panel-enable"
+  else
+    echo "  Per rimuoverlo: sudo systemctl disable --now $SERVICE"
+  fi
 else
   echo "✗ Il kiosk non è partito: guarda i log con: journalctl -u $SERVICE -e"
   exit 1

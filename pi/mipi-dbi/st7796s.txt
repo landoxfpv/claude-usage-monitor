@@ -1,0 +1,15 @@
+# Sequenza di init ST7796S 480x320, landscape, RGB565.
+# Convertila in panel.bin con:  python3 gen-panel-bin.py st7796s.txt panel.bin
+# Verificata sul modulo rosso "4.0 TFT SPI 480x320 V1.1" (ST7796S + XPT2046).
+#
+# Se i colori escono a negativo (rosso<->ciano): cambia 0x20 in 0x21 (INVON).
+# Se rosso/blu sono scambiati: togli il bit BGR da MADCTL (0x28 -> 0x20).
+# Se e' ruotato/specchiato: prova altri MADCTL (0x28/0x48/0x88/0xE8).
+
+command 0x11        # SLPOUT: esci dallo sleep
+delay 120
+command 0x3A 0x55   # COLMOD: 16 bit/pixel (RGB565)
+command 0x36 0x28   # MADCTL: MV|BGR -> landscape 480x320, ordine BGR
+command 0x20        # INVOFF: inversione display OFF
+command 0x29        # DISPON: display acceso
+delay 20

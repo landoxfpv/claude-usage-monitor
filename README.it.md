@@ -148,6 +148,16 @@ Pi Zero W + Raspberry Pi OS Trixie) per il pannello 4.0". Rilancia l'installer
 per cambiare motore o framebuffer; per rimuoverlo:
 `sudo systemctl disable --now claude-kiosk`.
 
+### Case tagliato al laser
+
+![Il monitor nel suo case tagliato al laser](docs/screenshots/case-build.jpg)
+
+Un contenitore a incastri (finger-joint) per il pannello 4.0" + Pi Zero. I file
+di taglio sono in [`Lasercut-box/`](Lasercut-box/): `Lasercut.svg` è il foglio
+vettoriale (~256×136 mm; scala secondo il tuo materiale), `Lasercut.png` mostra
+l'anteprima e `Engraving_text.png` è l'incisione frontale. Altre foto del build
+in [`Foto/`](Foto/).
+
 ## Test rapido senza Pi
 
 ```sh

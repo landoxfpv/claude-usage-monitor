@@ -129,6 +129,16 @@ Zero W + Raspberry Pi OS Trixie) for the 4.0" panel. Re-run the installer to
 switch engine or framebuffer; remove with
 `sudo systemctl disable --now claude-kiosk`.
 
+### Laser-cut case
+
+![The monitor in its laser-cut case](docs/screenshots/case-build.jpg)
+
+A simple finger-joint enclosure for the 4.0" panel + Pi Zero. Cut files are in
+[`Lasercut-box/`](Lasercut-box/): `Lasercut.svg` is the vector cut sheet
+(~256×136 mm; scale to your material), `Lasercut.png` previews the layout and
+`Engraving_text.png` is the front engraving. More build photos in
+[`Foto/`](Foto/).
+
 ## Quick test without a Pi
 
 ```sh
