@@ -133,3 +133,6 @@ the user.
 - Uninstall: remove the `statusLine` block from `~/.claude/settings.json` (or
   restore `STATUSLINE_CMD`), and on the Pi
   `sudo systemctl disable --now claude-usage`.
+
+## THREAD
+Prima di iniziare a lavorare su un progetto, controlla se esiste `D:/Projects/thread/progetti/<Progetto>.md`. Se non esiste, scrivila con la forma di THREAD (vedi `D:/Projects/thread/METODO.md`). Se esiste, leggila per sapere dove sei. Quando chiudi lavoro, aggiornala.
